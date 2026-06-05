@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>光影集·共享影廊 | 摄影作品分享平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'PingFang SC', Roboto, 'Helvetica Neue', sans-serif; }
+        :root {
+            --bg-primary: #f8f9fa; --bg-card: #ffffff; --text-primary: #1e2a3e; --text-secondary: #5a6874;
+            --border: #e9ecef; --accent: #c44569; --accent-hover: #a43452; --shadow: 0 8px 20px rgba(0,0,0,0.05);
+            --danger: #e74c3c; --warning: #f39c12; --success: #2ecc71; --admin-color: #8e44ad; --info: #3498db;
+            --msg-me: #2ecc71; --msg-other: #c44569;
+        }
+        [data-theme="dark"] { --bg-primary: #121212; --bg-card: #1e1e2a; --text-primary: #f0f0f0; --text-secondary: #a0a0b0; --border: #2a2a35; --shadow: 0 8px 20px rgba(0,0,0,0.3); }
+        body { background: var(--bg-primary); color: var(--text-primary); transition: all 0.3s ease; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; padding: 20px 0; border-bottom: 2px solid var(--border); margin-bottom: 30px; gap: 15px; }
+        .logo h1 { font-size: 1.8rem; background: linear-gradient(135deg, #c44569, #e77f67); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .logo p { font-size: 0.8rem; color: var(--text-secondary); }
+        .header-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .student-badge { background: var(--accent); padding: 8px 18px; border-radius: 40px; color: white; font-weight: bold; font-size: 0.85rem; }
+        .theme-toggle, .logout-btn, .upload-trigger, .login-header-btn, .admin-login-btn { background: var(--bg-card); border: 1px solid var(--border); padding: 8px 16px; border-radius: 30px; cursor: pointer; transition: 0.2s; }
+        .upload-trigger, .login-header-btn { background: var(--accent); color: white; border: none; }
+        .admin-login-btn { background: var(--admin-color); color: white; border: none; }
+        .logout-btn { background: var(--danger); color: white; border: none; }
+        .logout-btn:hover { background: #c0392b; }
+        .notification-badge { background: var(--danger); color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; margin-left: 5px; }
+        .tabs { display: flex; gap: 12px; margin-bottom: 30px; flex-wrap: wrap; }
+        .tab-btn { padding: 10px 28px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 40px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+        .tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; margin-bottom: 40px; }
+        .photo-card { background: var(--bg-card); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); transition: transform 0.2s; cursor: pointer; position: relative; }
+        .photo-card:hover { transform: translateY(-5px); }
+        .photo-preview { height: 240px; background: linear-gradient(135deg, #c44569, #e77f67); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-size: 4rem; }
+        .photo-info { padding: 16px; }
+        .photo-name { font-weight: 600; font-size: 1.1rem; margin-bottom: 6px; }
+        .photo-description { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; margin: 8px 0; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+        .uploader-badge { font-size: 0.7rem; color: var(--text-secondary); margin-top: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .report-btn, .delete-photo-btn { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); border: none; border-radius: 30px; color: white; padding: 4px 10px; font-size: 0.7rem; cursor: pointer; z-index: 10; }
+        .report-btn { right: auto; left: 8px; background: rgba(243, 156, 18, 0.8); }
+        .report-btn:hover { background: var(--warning); }
+        .delete-photo-btn:hover { background: var(--danger); }
+        .empty-state { text-align: center; padding: 80px 20px; background: var(--bg-card); border-radius: 28px; margin: 40px 0; }
+        .blog-section, .profile-section, .admin-section { background: var(--bg-card); border-radius: 28px; padding: 24px; margin-top: 30px; }
+        .blog-form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; }
+        .blog-form input, .blog-form textarea { padding: 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); }
+        .blog-form button { background: var(--accent); color: white; border: none; padding: 10px; border-radius: 40px; cursor: pointer; width: 140px; }
+        .blog-list, .report-list, .notification-list, .history-list, .service-list { display: flex; flex-direction: column; gap: 16px; max-height: 500px; overflow-y: auto; }
+        .blog-item, .report-item, .notification-item, .history-item, .service-item { border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+        .report-item, .history-item, .service-item { background: var(--bg-primary); padding: 16px; border-radius: 16px; margin-bottom: 12px; }
+        .conversation { max-height: 400px; overflow-y: auto; margin-bottom: 16px; padding: 8px; display: flex; flex-direction: column; gap: 12px; }
+        .msg-item { display: flex; flex-direction: column; max-width: 80%; }
+        .msg-me { align-self: flex-end; }
+        .msg-other { align-self: flex-start; }
+        .msg-bubble { padding: 10px 16px; border-radius: 20px; word-wrap: break-word; }
+        .msg-me .msg-bubble { background: var(--msg-me); color: #1e2a3e; border-radius: 20px 20px 4px 20px; }
+        .msg-other .msg-bubble { background: var(--msg-other); color: white; border-radius: 20px 20px 20px 4px; }
+        .msg-time { font-size: 0.65rem; color: var(--text-secondary); margin-top: 4px; margin-left: 8px; margin-right: 8px; }
+        .msg-me .msg-time { text-align: right; }
+        .msg-other .msg-time { text-align: left; }
+        .conversation-input { display: flex; gap: 8px; margin-top: 12px; }
+        .conversation-input input { flex: 1; padding: 12px; border-radius: 30px; border: 1px solid var(--border); background: var(--bg-primary); }
+        .conversation-input button { background: var(--accent); color: white; border: none; padding: 8px 24px; border-radius: 30px; cursor: pointer; }
+        .status-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; }
+        .status-pending { background: var(--warning); color: #1e2a3e; }
+        .status-approved { background: var(--success); color: white; }
+        .status-rejected { background: var(--danger); color: white; }
+        .profile-card { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .avatar { width: 120px; height: 120px; background: var(--accent); border-radius: 60px; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: white; cursor: pointer; overflow: hidden; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar span { font-size: 3rem; }
+        .avatar:hover::after { content: "✏️"; position: absolute; bottom: 0; right: 0; background: rgba(0,0,0,0.6); border-radius: 50%; padding: 6px; font-size: 1rem; }
+        .profile-info { text-align: center; width: 100%; max-width: 500px; }
+        .info-row { margin: 16px 0; padding: 8px; border-bottom: 1px dashed var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .info-label { font-weight: 600; color: var(--accent); min-width: 80px; }
+        .info-value { flex: 1; text-align: left; word-break: break-word; }
+        .edit-input { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 30px; padding: 8px 16px; width: 200px; }
+        .edit-mode-actions { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+        .edit-btn, .save-edit-btn, .cancel-edit-btn { background: var(--accent); border: none; padding: 10px 28px; border-radius: 40px; color: white; cursor: pointer; font-weight: bold; }
+        .cancel-edit-btn { background: var(--text-secondary); }
+        #avatarFileInput { display: none; }
+        .sub-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; flex-wrap: wrap; }
+        .sub-tab-btn { background: none; border: none; padding: 8px 20px; cursor: pointer; border-radius: 30px; transition: 0.2s; }
+        .sub-tab-btn.active { background: var(--accent); color: white; }
+        .admin-sub-tabs { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .admin-sub-btn { background: none; border: none; padding: 8px 24px; cursor: pointer; border-radius: 30px; font-size: 1rem; transition: 0.2s; }
+        .admin-sub-btn.active { background: var(--accent); color: white; }
+        .char-counter { font-size: 0.7rem; text-align: right; margin-top: -5px; margin-bottom: 10px; color: var(--text-secondary); }
+        .char-counter.valid { color: var(--success); }
+        .char-counter.invalid { color: var(--danger); }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1100; display: none; justify-content: center; align-items: center; }
+        .modal.open { display: flex; }
+        .modal-content { background: var(--bg-card); width: 550px; max-width: 90%; border-radius: 36px; padding: 32px; position: relative; max-height: 85vh; overflow-y: auto; }
+        .modal-content h2, .modal-content h3 { text-align: center; margin-bottom: 20px; }
+        .modal-content input, .modal-content select, .modal-content textarea { width: 100%; padding: 12px; margin: 10px 0; border-radius: 20px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); }
+        .modal-content button { width: 100%; background: var(--accent); border: none; padding: 12px; border-radius: 40px; color: white; font-weight: bold; margin-top: 12px; cursor: pointer; }
+        .modal-content .admin-login-btn-modal { background: var(--admin-color); margin-top: 8px; }
+        .switch-auth { text-align: center; margin-top: 16px; color: var(--accent); cursor: pointer; }
+        .close-modal { position: absolute; top: 16px; right: 20px; font-size: 1.5rem; cursor: pointer; }
+        .auth-error { color: var(--danger); font-size: 0.8rem; margin-top: 8px; text-align: center; }
+        .image-preview-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1200; display: none; justify-content: center; align-items: center; flex-direction: column; }
+        .image-preview-modal.open { display: flex; }
+        .preview-img { max-width: 90%; max-height: 60%; border-radius: 20px; object-fit: contain; }
+        .preview-description { margin-top: 20px; color: white; font-size: 1rem; text-align: center; max-width: 80%; background: rgba(0,0,0,0.6); padding: 15px 25px; border-radius: 30px; line-height: 1.5; }
+        .preview-caption { margin-top: 10px; color: var(--accent); font-size: 1.2rem; font-weight: bold; }
+        .report-photo-preview { max-width: 100%; max-height: 250px; border-radius: 12px; margin: 12px 0; object-fit: contain; background: #f0f0f0; }
+        footer { text-align: center; padding: 30px; color: var(--text-secondary); border-top: 1px solid var(--border); margin-top: 40px; }
+        .badge-pending { background: var(--warning); color: #1e2a3e; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; }
+        .search-box { margin-bottom: 16px; display: flex; gap: 10px; }
+        .search-box input { flex: 1; padding: 10px; border-radius: 30px; border: 1px solid var(--border); background: var(--bg-primary); }
+        .search-box button { padding: 8px 20px; background: var(--accent); color: white; border: none; border-radius: 30px; cursor: pointer; }
+        .contact-btn { background: var(--info); color: white; border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; margin-left: 8px; }
+        @media (max-width: 700px) {
+            .header { flex-direction: column; align-items: stretch; text-align: center; }
+            .header-actions { justify-content: center; }
+            .info-row { flex-direction: column; align-items: flex-start; }
+            .edit-input { width: 100%; }
+            .gallery-grid { grid-template-columns: 1fr; }
+            .conversation-input { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo"><h1><i class="fas fa-camera-retro"></i> 光影集·共享影廊</h1><p>每个人都是生活的摄影师 · 分享你的光影瞬间</p></div>
+        <div class="header-actions">
+            <div class="student-badge"><i class="fas fa-graduation-cap"></i> 大作业演示 | 学号:24215220201</div>
+            <button class="upload-trigger" id="openUploadBtn">📤 上传照片</button>
+            <button class="login-header-btn" id="showLoginBtn">👤 用户登录</button>
+            <button class="admin-login-btn" id="showAdminLoginBtn">🛡️ 管理员登录</button>
+            <button class="contact-btn" id="openContactBtn">💬 联系客服</button>
+            <button class="theme-toggle" id="themeToggle">🌙 深色模式</button>
+            <button class="logout-btn" id="logoutBtn" style="display:none;">🚪 退出</button>
+        </div>
+    </div>
+    <div class="tabs" id="tabBar">
+        <button class="tab-btn active" data-tab="all">📷 全部作品</button>
+        <button class="tab-btn" data-tab="landscape">🌄 风景类</button>
+        <button class="tab-btn" data-tab="portrait">👤 人像类</button>
+        <button class="tab-btn" data-tab="blog">📝 光影日记</button>
+        <button class="tab-btn" data-tab="profile">👤 个人中心</button>
+    </div>
+    <div id="galleryContainer" class="gallery-grid"></div>
+    <div id="blogSection" class="blog-section" style="display:none;"><h3>撰写新文章</h3><div class="blog-form"><input type="text" id="blogTitle" placeholder="文章标题"><textarea id="blogContent" rows="3" placeholder="写下你的摄影感悟..."></textarea><button id="publishBtn">发布日记</button></div><div id="blogList" class="blog-list"></div></div>
+    <div id="profileSection" class="profile-section" style="display:none;">
+        <div class="profile-card"><div class="avatar" id="avatarPreview"><span id="avatarEmoji">📷</span></div><input type="file" id="avatarFileInput" accept="image/jpeg,image/png,image/jpg"><div class="profile-info"><div class="sub-tabs"><button class="sub-tab-btn active" data-subtab="info">📋 我的资料</button><button class="sub-tab-btn" data-subtab="notifications">🔔 消息中心 <span id="unreadCount" class="notification-badge" style="display:none;">0</span></button><button class="sub-tab-btn" data-subtab="service">💬 在线客服</button></div>
+        <div id="infoSubtab" class="subtab-content"><div class="info-row"><span class="info-label">昵称</span><span class="info-value" id="displayNickname">加载中...</span><i class="fas fa-pen" style="color:var(--accent);cursor:pointer" id="editNicknameIcon"></i></div><div class="info-row"><span class="info-label">邮箱</span><span class="info-value" id="displayEmail">---</span></div><div class="info-row"><span class="info-label">手机号</span><span class="info-value" id="displayPhone">---</span><i class="fas fa-pen" style="color:var(--accent);cursor:pointer" id="editPhoneIcon"></i></div><div class="info-row"><span class="info-label">个性签名</span><span class="info-value" id="displayBio">热爱摄影，记录世界的美好</span><i class="fas fa-pen" style="color:var(--accent);cursor:pointer" id="editBioIcon"></i></div><div class="info-row"><span class="info-label">我的作品数</span><span class="info-value" id="myPhotosCount">0</span></div></div>
+        <div id="notificationsSubtab" class="subtab-content" style="display:none;"><div id="notificationList" class="notification-list"></div></div>
+        <div id="serviceSubtab" class="subtab-content" style="display:none;"><div id="userConvList" class="service-list"></div></div>
+        <div id="editMode" style="display:none;"><div class="info-row"><span class="info-label">昵称</span><input type="text" id="editNicknameInput" class="edit-input" placeholder="昵称"></div><div class="info-row"><span class="info-label">手机号</span><input type="text" id="editPhoneInput" class="edit-input" placeholder="手机号"></div><div class="info-row"><span class="info-label">个性签名</span><input type="text" id="editBioInput" class="edit-input" placeholder="一句话介绍自己"></div><div class="edit-mode-actions"><button class="save-edit-btn" id="saveEditBtn">保存修改</button><button class="cancel-edit-btn" id="cancelEditBtn">取消</button></div></div></div></div>
+    </div>
+    <div id="adminSection" class="admin-section" style="display:none;">
+        <h3>🛡️ 管理员审核面板</h3>
+        <div class="admin-sub-tabs">
+            <button class="admin-sub-btn active" data-admintab="pending">📋 待审核举报 <span id="pendingBadge" class="badge-pending" style="margin-left:5px;">0</span></button>
+            <button class="admin-sub-btn" data-admintab="history">📜 审核记录</button>
+            <button class="admin-sub-btn" data-admintab="service">💬 客服对话 <span id="serviceBadge" class="badge-pending" style="margin-left:5px;">0</span></button>
+        </div>
+        <div id="pendingPanel" class="admin-panel"><div id="reportList" class="report-list"></div></div>
+        <div id="historyPanel" class="admin-panel" style="display:none;"><div class="search-box"><input type="text" id="historySearch" placeholder="搜索举报人、被举报内容..."><button id="searchHistoryBtn">🔍 搜索</button></div><div id="historyList" class="history-list"></div></div>
+        <div id="servicePanel" class="admin-panel" style="display:none;"><div class="search-box"><input type="text" id="serviceSearch" placeholder="搜索用户名..."><button id="searchServiceBtn">🔍 搜索</button></div><div id="adminConvList" class="service-list"></div></div>
+    </div>
+</div>
+<!-- 模态框 -->
+<div id="userAuthModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeUserAuthModalBtn">&times;</span><h2>用户登录</h2><input type="text" id="userUsername" placeholder="用户名"><input type="password" id="userPassword" placeholder="密码"><button id="submitUserLoginBtn">登录</button><div class="switch-auth" id="switchToRegister">没有账号？立即注册</div><div id="userAuthMsg" class="auth-error"></div></div></div>
+<div id="adminAuthModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeAdminAuthModalBtn">&times;</span><h2>管理员登录</h2><input type="password" id="adminPassword" placeholder="管理员密码"><button id="submitAdminLoginBtn" class="admin-login-btn-modal">管理员登录</button><div id="adminAuthMsg" class="auth-error"></div></div></div>
+<div id="registerModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeRegisterModalBtn">&times;</span><h2>用户注册</h2><input type="text" id="regUsername" placeholder="用户名（3~12位）"><input type="password" id="regPassword" placeholder="密码（6~18位）"><button id="submitRegisterBtn">注册</button><div class="switch-auth" id="switchToLogin">已有账号？去登录</div><div id="regMsg" class="auth-error"></div></div></div>
+<div id="reportModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeReportModalBtn">&times;</span><h3>举报内容</h3><textarea id="reportReason" placeholder="请描述举报原因"></textarea><button id="submitReportBtn">提交举报</button></div></div>
+<div id="uploadModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeUploadModalBtn">&times;</span><h2>上传作品</h2><input type="text" id="photoTitle" placeholder="作品名称 *"><select id="photoCategory"><option value="landscape">🌄 风景类</option><option value="portrait">👤 人像类</option></select><textarea id="photoDescription" rows="3" placeholder="作品介绍（10-200字）*"></textarea><div id="descCounter" class="char-counter">0 / 200 字（至少10字）</div><input type="file" id="photoFile" accept="image/jpeg,image/png,image/jpg,image/gif"><button id="confirmUploadBtn">上传作品</button><div id="uploadMsg" style="color:var(--danger); font-size:0.8rem; text-align:center; margin-top:8px;"></div></div></div>
+<div id="imagePreviewModal" class="image-preview-modal"><span class="close-modal" style="color:white; top:20px; right:30px; position:absolute; font-size:2rem; cursor:pointer;">&times;</span><div style="display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%;"><img class="preview-img" id="previewImg" src="" alt="预览"><div class="preview-caption" id="previewCaption"></div><div class="preview-description" id="previewDescription"></div></div></div>
+<div id="reportDetailModal" class="modal"><div class="modal-content" style="max-width:650px;"><span class="close-modal" id="closeReportDetailBtn">&times;</span><h3>被举报内容详情</h3><div id="reportDetailContent" style="max-height:500px; overflow-y:auto;"></div><button id="closeDetailBtn" style="background:var(--text-secondary); margin-top:16px;">关闭</button></div></div>
+<footer>❤️ 每一张照片，都是时光的标本 | 光影集·共享影廊</footer>
+
+<script>
+    // ========== 预设照片数据 ==========
+    const presetPhotos = [
+        { id: 1, name: "山间晨雾", type: "landscape", description: "清晨的山间，薄雾如纱般笼罩着群山，阳光透过雾气洒下斑驳的光影。远处的山峰若隐若现，仿佛一幅水墨画卷。", imgFile: "photo/图片一.jpg", uploaderUsername: "系统", uploaderNickname: "光影集", timestamp: Date.now() - 10 * 24 * 3600 * 1000 },
+        { id: 2, name: "湖光倒影", type: "landscape", description: "平静的湖面如同一面镜子，倒映着蓝天白云和岸边的绿树。微风吹过，泛起层层涟漪，倒影也随之舞动。", imgFile: "photo/图片二.jpg", uploaderUsername: "系统", uploaderNickname: "光影集", timestamp: Date.now() - 9 * 24 * 3600 * 1000 },
+        { id: 3, name: "林间小路", type: "landscape", description: "蜿蜒的小路穿过茂密的森林，阳光透过树叶洒下斑驳的光点。路边的野花在微风中摇曳，鸟儿在枝头欢快地歌唱。", imgFile: "photo/图片三.jpg", uploaderUsername: "系统", uploaderNickname: "光影集", timestamp: Date.now() - 8 * 24 * 3600 * 1000 },
+        { id: 4, name: "金色麦田", type: "landscape", description: "秋天的麦田是一片金色的海洋，成熟的麦穗在风中摇曳，发出沙沙的声响。农民们忙碌的身影穿梭其中，脸上洋溢着丰收的喜悦。", imgFile: "photo/图片四.jpg", uploaderUsername: "系统", uploaderNickname: "光影集", timestamp: Date.now() - 7 * 24 * 3600 * 1000 },
+        { id: 5, name: "雪后初晴", type: "landscape", description: "大雪过后，世界变得洁白无瑕。阳光照在雪地上反射出耀眼的光芒，树枝上挂满了晶莹的冰凌。雪后的世界安静而纯净。", imgFile: "photo/图片五.jpg", uploaderUsername: "系统", uploaderNickname: "光影集", timestamp: Date.now() - 6 * 24 * 3600 * 1000 },
+        { id: 6, name: "午后光影", type: "portrait", description: "午后的阳光透过窗户洒进房间，女孩坐在窗边，金色的光线勾勒出她柔和的轮廓。光影交错间，定格了这一刻的宁静与温柔。", imgFile: "photo/图片六.jpg", uploaderUsername: "系统", uploaderNickname: "光影集", timestamp: Date.now() - 5 * 24 * 3600 * 1000 },
+        { id: 7, name: "回眸瞬间", type: "portrait", description: "回眸一笑百媚生，这个经典的瞬间被镜头永远定格。女孩转身回望，眼中闪烁着灵动的光芒，整个画面充满了故事感。", imgFile: "photo/图片七.jpg", uploaderUsername: "系统", uploaderNickname: "光影集", timestamp: Date.now() - 4 * 24 * 3600 * 1000 },
+        { id: 8, name: "城市漫游", type: "portrait", description: "都市的街头，女孩戴着耳机漫步其中，沉浸在自己的世界里。她的穿搭时尚而个性，与背后的城市建筑形成了有趣的对比。", imgFile: "photo/图片八.jpg", uploaderUsername: "系统", uploaderNickname: "光影集", timestamp: Date.now() - 3 * 24 * 3600 * 1000 },
+        { id: 9, name: "静谧时光", type: "portrait", description: "在安静的图书馆里，女孩专注地阅读着手中的书。阳光从窗外斜射进来，在书页上投下温暖的光影。", imgFile: "photo/图片九.jpg", uploaderUsername: "系统", uploaderNickname: "光影集", timestamp: Date.now() - 2 * 24 * 3600 * 1000 },
+        { id: 10, name: "青春笑颜", type: "portrait", description: "青春是最好的滤镜，笑容是最美的妆容。女孩灿烂的笑容感染了每一个人，眼中闪烁着对未来的憧憬和希望。", imgFile: "photo/图片十.jpg", uploaderUsername: "系统", uploaderNickname: "光影集", timestamp: Date.now() - 1 * 24 * 3600 * 1000 }
+    ];
+
+    let allPhotos = [], currentUser = null, isAdminMode = false, currentTab = "all", blogs = [], reports = [], notifications = [], conversations = [];
+    const ADMIN_PASSWORD = "admin123";
+    function isAdmin() { return isAdminMode; }
+    
+    function initPresetPhotos() {
+        let existing = localStorage.getItem("shared_photos");
+        if (!existing || JSON.parse(existing).length === 0) {
+            let preset = presetPhotos.map(p => ({
+                id: p.id, name: p.name, type: p.type, description: p.description, src: p.imgFile,
+                uploaderUsername: p.uploaderUsername, uploaderNickname: p.uploaderNickname,
+                timestamp: p.timestamp, isSystem: true
+            }));
+            localStorage.setItem("shared_photos", JSON.stringify(preset));
+        }
+    }
+    
+    function setupDescriptionCounter() { 
+        const textarea = document.getElementById("photoDescription"); 
+        const counter = document.getElementById("descCounter"); 
+        if (!textarea || !counter) return; 
+        function updateCounter() { 
+            let len = textarea.value.length; 
+            counter.innerText = `${len} / 200 字（至少10字）`; 
+            if (len < 10) counter.classList.add("invalid"); 
+            else if (len <= 200) counter.classList.add("valid"); 
+            else counter.classList.add("invalid"); 
+        } 
+        textarea.addEventListener("input", updateCounter); 
+        updateCounter(); 
+    }
+    function validateDescription(desc) { let len = desc.length; return len >= 10 && len <= 200; }
+    
+    function addNotification(username, title, content) { 
+        if (!username) return; 
+        notifications.unshift({ id: Date.now(), username, title, content, isRead: false, timestamp: new Date().toLocaleString() }); 
+        localStorage.setItem("notifications", JSON.stringify(notifications)); 
+        if (currentUser && currentUser.username === username) { updateUnreadBadge(); renderNotifications(); } 
+    }
+    function loadNotifications() { notifications = JSON.parse(localStorage.getItem("notifications") || "[]"); updateUnreadBadge(); }
+    function updateUnreadBadge() { 
+        if (!currentUser) return; 
+        let unreadCount = notifications.filter(n => n.username === currentUser.username && !n.isRead).length; 
+        let badge = document.getElementById("unreadCount"); 
+        if (badge) { 
+            if (unreadCount > 0) { badge.style.display = "inline-block"; badge.innerText = unreadCount; } 
+            else badge.style.display = "none"; 
+        } 
+    }
+    function markAsRead(id) { 
+        let n = notifications.find(x => x.id == id); 
+        if (n && n.username === currentUser?.username) { 
+            n.isRead = true; 
+            localStorage.setItem("notifications", JSON.stringify(notifications)); 
+            renderNotifications(); 
+            updateUnreadBadge(); 
+        } 
+    }
+    function renderNotifications() { 
+        let c = document.getElementById("notificationList"); 
+        if (!c) return; 
+        if (!currentUser) { c.innerHTML = "<div style='text-align:center;padding:20px;'>请先登录</div>"; return; } 
+        let userN = notifications.filter(n => n.username === currentUser.username); 
+        if (userN.length === 0) { c.innerHTML = "<div style='text-align:center;padding:20px;'>暂无消息</div>"; return; } 
+        c.innerHTML = userN.map(n => `<div class="notification-item ${!n.isRead ? 'unread' : ''}"><div class="notification-title">📢 ${escapeHtml(n.title)}</div><div>${escapeHtml(n.content)}</div><div class="notification-time">${n.timestamp}</div>${!n.isRead ? `<button class="mark-read-btn" data-id="${n.id}">标记已读</button>` : ''}</div>`).join(''); 
+        document.querySelectorAll('.mark-read-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); markAsRead(parseInt(btn.dataset.id)); })); 
+    }
+    
+    // 客服对话系统
+    function loadConversations() { conversations = JSON.parse(localStorage.getItem("conversations") || "[]"); updateServiceBadges(); }
+    function saveConversations() { localStorage.setItem("conversations", JSON.stringify(conversations)); }
+    function getOrCreateConversation(username, nickname) {
+        let conv = conversations.find(c => c.username === username);
+        if (!conv) {
+            conv = { id: Date.now(), username: username, nickname: nickname, messages: [], lastUpdate: new Date().toLocaleString() };
+            conversations.push(conv);
+            saveConversations();
+        }
+        return conv;
+    }
+    function addMessage(username, nickname, message, sender) {
+        let conv = getOrCreateConversation(username, nickname);
+        conv.messages.push({ id: Date.now(), sender: sender, content: message, timestamp: new Date().toLocaleString() });
+        conv.lastUpdate = new Date().toLocaleString();
+        saveConversations();
+        if (sender === "user") { updateServiceBadges(); }
+        else if (sender === "admin") {
+            addNotification(username, "客服新回复", `您有新的客服回复："${message.substring(0, 50)}..."`);
+            updateServiceBadges();
+        }
+        if (isAdmin()) renderAdminConversations();
+        if (currentUser && currentUser.username === username) renderUserConversations();
+    }
+    function updateServiceBadges() {
+        let unreadCount = conversations.filter(c => c.messages.length > 0 && c.messages[c.messages.length - 1].sender === "user").length;
+        let badge = document.getElementById("serviceBadge");
+        if (badge) { if (unreadCount > 0) { badge.style.display = "inline-block"; badge.innerText = unreadCount; } else badge.style.display = "none"; }
+    }
+    
+    function renderUserConversations() {
+        let container = document.getElementById("userConvList");
+        if (!container) return;
+        if (!currentUser) { container.innerHTML = "<div style='text-align:center;padding:20px;'>请先登录</div>"; return; }
+        let conv = conversations.find(c => c.username === currentUser.username);
+        if (!conv || conv.messages.length === 0) { 
+            container.innerHTML = `<div class="conversation" style="text-align:center;color:var(--text-secondary);padding:40px 20px;">暂无咨询记录，发送消息开始对话吧</div>
+                <div class="conversation-input"><input type="text" id="userReplyInput" placeholder="输入你的消息..."><button id="userSendReplyBtn">发送</button></div>`;
+            let sendBtn = document.getElementById("userSendReplyBtn");
+            if (sendBtn) {
+                sendBtn.onclick = function() { 
+                    let input = document.getElementById("userReplyInput");
+                    let msg = input.value.trim(); 
+                    if (!msg) { alert("请输入消息"); return; } 
+                    addMessage(currentUser.username, currentUser.nickname, msg, "user"); 
+                    input.value = ""; 
+                    renderUserConversations(); 
+                };
+            }
+            return;
+        }
+        let messagesHtml = '';
+        for (let m of conv.messages) {
+            let isMe = (m.sender === "user" && currentUser.username === conv.username) || (m.sender === "admin" && isAdminMode);
+            let actualSender = m.sender === "user" ? "我" : "客服";
+            messagesHtml += `<div class="msg-item ${isMe ? 'msg-me' : 'msg-other'}">
+                        <div class="msg-bubble">${escapeHtml(m.content)}</div>
+                        <div class="msg-time">${actualSender} · ${m.timestamp}</div>
+                    </div>`;
+        }
+        container.innerHTML = `<div class="conversation" id="userConvMessages">${messagesHtml}</div>
+            <div class="conversation-input"><input type="text" id="userReplyInput" placeholder="输入你的消息..."><button id="userSendReplyBtn">发送</button></div>`;
+        let msgsDiv = document.getElementById("userConvMessages");
+        if (msgsDiv) msgsDiv.scrollTop = msgsDiv.scrollHeight;
+        let sendBtn = document.getElementById("userSendReplyBtn");
+        if (sendBtn) {
+            sendBtn.onclick = function() { 
+                let input = document.getElementById("userReplyInput");
+                let msg = input.value.trim(); 
+                if (!msg) { alert("请输入消息"); return; } 
+                addMessage(currentUser.username, currentUser.nickname, msg, "user"); 
+                input.value = ""; 
+                renderUserConversations(); 
+            };
+        }
+    }
+    
+    let currentServiceSearch = "";
+    function renderAdminConversations() {
+        if (!isAdmin()) return;
+        let container = document.getElementById("adminConvList");
+        if (!container) return;
+        let filtered = [...conversations];
+        if (currentServiceSearch) { let search = currentServiceSearch.toLowerCase(); filtered = filtered.filter(c => c.username.toLowerCase().includes(search) || c.nickname.toLowerCase().includes(search)); }
+        if (filtered.length === 0) { container.innerHTML = "<div style='text-align:center;padding:30px;'>暂无对话记录</div>"; return; }
+        container.innerHTML = '';
+        for (let conv of filtered) {
+            let convDiv = document.createElement('div');
+            convDiv.className = 'service-item';
+            convDiv.setAttribute('data-id', conv.id);
+            convDiv.innerHTML = `<div><strong>👤 用户：</strong>${escapeHtml(conv.nickname || conv.username)} (${conv.username})<br><strong>📅 最后更新：</strong>${conv.lastUpdate}<br><strong>💬 消息数：</strong>${conv.messages.length}</div>
+                <button class="view-conv-btn" data-id="${conv.id}" style="margin-top:8px; background:var(--info); color:white; border:none; padding:6px 16px; border-radius:30px; cursor:pointer;">查看对话</button>
+                <div id="convDetail-${conv.id}" class="conv-detail" style="display:none; margin-top:12px;"></div>`;
+            container.appendChild(convDiv);
+        }
+        document.querySelectorAll('.view-conv-btn').forEach(btn => {
+            btn.onclick = function() { 
+                let id = parseInt(this.dataset.id); 
+                let conv = conversations.find(c => c.id == id); 
+                let detailDiv = document.getElementById(`convDetail-${id}`); 
+                if (detailDiv.style.display === 'none') { 
+                    detailDiv.style.display = 'block'; 
+                    let messagesHtml = '';
+                    for (let m of conv.messages) {
+                        let isAdminMsg = m.sender === "admin";
+                        messagesHtml += `<div class="msg-item ${isAdminMsg ? 'msg-me' : 'msg-other'}">
+                            <div class="msg-bubble">${escapeHtml(m.content)}</div>
+                            <div class="msg-time">${isAdminMsg ? '客服' : conv.nickname} · ${m.timestamp}</div>
+                        </div>`;
+                    }
+                    detailDiv.innerHTML = `<div class="conversation" style="max-height:300px;">${messagesHtml}</div>
+                        <div class="conversation-input"><input type="text" id="adminReplyInput-${id}" placeholder="输入回复..."><button id="adminSendReply-${id}">发送回复</button></div>`;
+                    let sendBtn = document.getElementById(`adminSendReply-${id}`);
+                    if (sendBtn) {
+                        sendBtn.onclick = function() { 
+                            let input = document.getElementById(`adminReplyInput-${id}`);
+                            let reply = input.value.trim(); 
+                            if (!reply) { alert("请输入回复内容"); return; } 
+                            addMessage(conv.username, conv.nickname, reply, "admin"); 
+                            input.value = ""; 
+                            renderAdminConversations(); 
+                        };
+                    }
+                } else { 
+                    detailDiv.style.display = 'none'; 
+                    detailDiv.innerHTML = ""; 
+                } 
+            };
+        });
+    }
+    
+    function loadData() { 
+        initPresetPhotos();
+        allPhotos = JSON.parse(localStorage.getItem("shared_photos") || "[]"); 
+        blogs = JSON.parse(localStorage.getItem("jingyuan_blogs") || '[{"id":1,"title":"欢迎来到光影集","content":"登录后可以上传自己的摄影作品。","date":"' + new Date().toLocaleDateString() + '"}]'); 
+        reports = JSON.parse(localStorage.getItem("reports") || "[]"); 
+        loadNotifications(); 
+        loadConversations(); 
+        renderAll(); 
+    }
+    function saveAll() { localStorage.setItem("shared_photos", JSON.stringify(allPhotos)); localStorage.setItem("jingyuan_blogs", JSON.stringify(blogs)); localStorage.setItem("reports", JSON.stringify(reports)); }
+    
+    function addPhoto(name, type, description, base64Data) { 
+        allPhotos.push({ id: Date.now(), name, type, description, src: base64Data, uploaderUsername: currentUser.username, uploaderNickname: currentUser.nickname, timestamp: Date.now() }); 
+        saveAll(); renderGallery(); updateMyPhotoCount(); 
+    }
+    function deletePhoto(photoId, isAdminAction) { 
+        let photo = allPhotos.find(p => p.id == photoId); 
+        if (!photo) return; 
+        let photoName = photo.name, owner = photo.uploaderUsername; 
+        if (!isAdmin() && (!currentUser || photo.uploaderUsername !== currentUser.username)) { 
+            alert("只能删除自己的照片"); 
+            return; 
+        } 
+        if (confirm("确定删除这张照片吗？")) { 
+            allPhotos = allPhotos.filter(p => p.id != photoId); 
+            saveAll(); 
+            if (isAdminAction && owner && owner !== "admin") addNotification(owner, "作品被删除", `您的作品《${photoName}》因违规被管理员删除。`); 
+            renderGallery(); 
+            updateMyPhotoCount(); 
+        } 
+    }
+    function getCurrentUserPhotoCount() { if (!currentUser) return 0; return allPhotos.filter(p => p.uploaderUsername === currentUser.username).length; }
+    function updateMyPhotoCount() { let span = document.getElementById("myPhotosCount"); if (span) span.innerText = getCurrentUserPhotoCount(); }
+    
+    function renderGallery() {
+        let container = document.getElementById("galleryContainer");
+        let filtered = allPhotos;
+        if (currentTab === "landscape") filtered = allPhotos.filter(p => p.type === "landscape");
+        else if (currentTab === "portrait") filtered = allPhotos.filter(p => p.type === "portrait");
+        if (filtered.length === 0) { container.innerHTML = `<div class="empty-state"><p>✨ 暂无作品，上传第一张照片吧 ✨</p><button onclick="document.getElementById('openUploadBtn').click()" style="margin-top:16px;background:var(--accent);border:none;padding:8px 24px;border-radius:40px;color:white;cursor:pointer">上传照片</button></div>`; return; }
+        container.innerHTML = filtered.map(p => { 
+            let isOwner = currentUser && p.uploaderUsername === currentUser.username; 
+            let isAdminUser = isAdmin(); 
+            let delBtn = (isOwner || isAdminUser) ? `<button class="delete-photo-btn" data-id="${p.id}"><i class="fas fa-trash"></i> 删除</button>` : ''; 
+            let reportBtn = (!isAdminUser && currentUser && p.uploaderUsername !== currentUser.username) ? `<button class="report-btn" data-type="photo" data-id="${p.id}" data-name="${p.name}"><i class="fas fa-flag"></i> 举报</button>` : ''; 
+            let shortDesc = p.description && p.description.length > 100 ? p.description.substring(0, 100) + "..." : (p.description || "暂无介绍"); 
+            return `<div class="photo-card" data-id="${p.id}" data-src="${p.src}" data-name="${p.name}" data-description="${escapeHtml(p.description || '暂无介绍')}">${delBtn}${reportBtn}<div class="photo-preview" style="background-image:url('${p.src}');background-size:cover"></div><div class="photo-info"><div class="photo-name">${escapeHtml(p.name)}</div><div class="photo-description">📝 ${escapeHtml(shortDesc)}</div><div class="uploader-badge"><span>📸 ${escapeHtml(p.uploaderNickname || p.uploaderUsername)}</span><span style="font-size:0.65rem;">🕒 ${new Date(p.timestamp).toLocaleDateString()}</span></div></div></div>`; 
+        }).join('');
+        // 绑定照片卡片点击事件
+        document.querySelectorAll('.photo-card').forEach(c => { 
+            c.addEventListener('click', (e) => { 
+                if (e.target.classList.contains('delete-photo-btn') || e.target.classList.contains('report-btn')) return; 
+                document.getElementById("previewImg").src = c.dataset.src; 
+                document.getElementById("previewCaption").innerText = c.dataset.name; 
+                document.getElementById("previewDescription").innerHTML = "📖 " + (c.dataset.description || "暂无介绍"); 
+                document.getElementById("imagePreviewModal").classList.add("open"); 
+            }); 
+        });
+        // 绑定删除按钮事件
+        document.querySelectorAll('.delete-photo-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); deletePhoto(parseInt(btn.dataset.id), isAdmin()); }));
+        // 绑定举报按钮事件
+        document.querySelectorAll('.report-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); openReportModal("photo", parseInt(btn.dataset.id), btn.dataset.name); }));
+    }
+    
+    function getTargetDetail(targetType, targetId) {
+        if (targetType === "photo") { let photo = allPhotos.find(p => p.id == targetId); if (photo) return { title: photo.name, content: photo.description, author: photo.uploaderNickname || photo.uploaderUsername, type: "照片", imageSrc: photo.src }; }
+        else if (targetType === "blog") { let blog = blogs.find(b => b.id == targetId); if (blog) return { title: blog.title, content: blog.content, author: "系统", type: "日记", imageSrc: null }; }
+        return null;
+    }
+    
+    function showReportDetail(report) {
+        let detail = getTargetDetail(report.targetType, report.targetId);
+        let statusText = report.status === "pending" ? "待审核" : (report.status === "approved" ? "已标记有效" : "已驳回");
+        let statusClass = report.status === "pending" ? "status-pending" : (report.status === "approved" ? "status-approved" : "status-rejected");
+        let detailHtml = `<div style="margin-bottom:16px;"><strong>📌 举报信息</strong><br>举报人：${escapeHtml(report.reporter)}<br>举报原因：${escapeHtml(report.reason)}<br>处理状态：<span class="status-badge ${statusClass}">${statusText}</span><br>举报时间：${report.timestamp}${report.processTime ? `<br>处理时间：${report.processTime}` : ""}</div>`;
+        if (detail) {
+            detailHtml += `<div class="report-detail" style="background:var(--bg-card); padding:16px; border-radius:16px; margin-top:12px;"><strong>📷 ${detail.type}详情</strong><br>标题/名称：${escapeHtml(detail.title)}<br>作者：${escapeHtml(detail.author)}<br>`;
+            if (detail.type === "照片" && detail.imageSrc) detailHtml += `<div style="margin:12px 0;"><strong>🖼️ 照片预览：</strong><br><img src="${detail.imageSrc}" class="report-photo-preview" style="max-width:100%; max-height:250px; border-radius:12px; margin-top:8px; object-fit:contain;"></div>`;
+            detailHtml += `<strong>📝 内容：</strong><div style="margin-top:8px;padding:12px;background:var(--bg-primary);border-radius:12px;">${escapeHtml(detail.content)}</div></div>`;
+        } else {
+            detailHtml += `<div class="report-detail" style="background:var(--bg-card); padding:16px; border-radius:16px; margin-top:12px;">⚠️ 该内容可能已被删除，无法查看详情</div>`;
+        }
+        document.getElementById("reportDetailContent").innerHTML = detailHtml;
+        document.getElementById("reportDetailModal").classList.add("open");
+    }
+    
+    let currentReportTarget = null;
+    function openReportModal(targetType, targetId, targetContent) { if (!currentUser) { alert("请先登录"); openModal("userAuthModal"); return; } if (isAdmin()) { alert("管理员无需举报"); return; } currentReportTarget = { type: targetType, id: targetId, content: targetContent }; document.getElementById("reportReason").value = ""; openModal("reportModal"); }
+    function submitReport() { let reason = document.getElementById("reportReason").value.trim(); if (!reason) { alert("请填写举报原因"); return; } reports.unshift({ id: Date.now(), targetType: currentReportTarget.type, targetId: currentReportTarget.id, targetContent: currentReportTarget.content, reason: reason, reporter: currentUser.username, status: "pending", timestamp: new Date().toLocaleString() }); saveAll(); closeModal("reportModal"); alert("举报已提交"); if (isAdmin()) renderAdminPanel(); }
+    
+    function sendVerdictNotification(report, verdict, deleteTarget) {
+        let verdictText = verdict === "approved" ? "有效" : "无效";
+        let actionText = deleteTarget ? "，违规内容已被删除" : "";
+        let title = `举报裁决结果通知`;
+        let content = `您举报的${report.targetType === "photo" ? "照片" : "日记"}"${report.targetContent.substring(0, 30)}..."经管理员审核，判定举报${verdictText}${actionText}。感谢您的监督！`;
+        addNotification(report.reporter, title, content);
+    }
+    
+    function approveReport(reportId, action, deleteTarget) {
+        let report = reports.find(r => r.id == reportId);
+        if (!report) return;
+        if (action === "approve") { report.status = "approved"; report.processTime = new Date().toLocaleString(); sendVerdictNotification(report, "approved", deleteTarget); }
+        else if (action === "reject") { report.status = "rejected"; report.processTime = new Date().toLocaleString(); sendVerdictNotification(report, "rejected", false); }
+        saveAll();
+        if (deleteTarget) {
+            if (report.targetType === "photo") { let photo = allPhotos.find(p => p.id == report.targetId); if (photo) { let owner = photo.uploaderUsername, name = photo.name; allPhotos = allPhotos.filter(p => p.id != report.targetId); if (owner && owner !== "admin") addNotification(owner, "作品被删除", `您的作品《${name}》因违规被管理员删除。举报原因：${report.reason}`); } }
+            else if (report.targetType === "blog") { blogs = blogs.filter(b => b.id != report.targetId); }
+            saveAll(); renderAll();
+        }
+        if (isAdmin()) renderAdminPanel();
+        renderAll();
+    }
+    
+    function reopenReport(reportId) {
+        let report = reports.find(r => r.id == reportId);
+        if (!report) return;
+        if (confirm(`将举报 "${report.targetContent.substring(0, 30)}..." 重新设为待审核状态？`)) {
+            report.status = "pending";
+            delete report.processTime;
+            saveAll();
+            renderAdminPanel();
+            alert("已移至待审核列表");
+        }
+    }
+    
+    let currentHistorySearch = "";
+    function renderAdminPanel() {
+        if (!isAdmin()) return;
+        let pending = reports.filter(r => r.status === "pending");
+        document.getElementById("pendingBadge").innerText = pending.length;
+        let pendingContainer = document.getElementById("reportList");
+        if (pendingContainer) {
+            if (pending.length === 0) pendingContainer.innerHTML = "<div style='text-align:center;padding:30px;'>暂无待审核举报</div>";
+            else {
+                pendingContainer.innerHTML = '';
+                for (let r of pending) {
+                    let div = document.createElement('div');
+                    div.className = 'report-item';
+                    div.innerHTML = `<div><strong>${r.targetType === "photo" ? "📷 照片" : "📝 日记"}</strong><br>被举报内容摘要：${escapeHtml(r.targetContent.substring(0, 50))}${r.targetContent.length > 50 ? "..." : ""}<br>举报原因：${escapeHtml(r.reason)}<br>举报人：${r.reporter}<br>时间：${r.timestamp}</div>
+                        <div class="report-actions"><button class="view-detail-pending" data-id="${r.id}">查看详情</button><button class="approve-pending" data-id="${r.id}">标记有效</button><button class="reject-pending" data-id="${r.id}">驳回</button><button class="delete-pending" data-id="${r.id}">删除内容</button></div>`;
+                    pendingContainer.appendChild(div);
+                }
+                document.querySelectorAll('.view-detail-pending').forEach(btn => btn.onclick = () => { let r = reports.find(x => x.id == parseInt(btn.dataset.id)); if (r) showReportDetail(r); });
+                document.querySelectorAll('.approve-pending').forEach(btn => btn.onclick = () => approveReport(parseInt(btn.dataset.id), "approve", false));
+                document.querySelectorAll('.reject-pending').forEach(btn => btn.onclick = () => approveReport(parseInt(btn.dataset.id), "reject", false));
+                document.querySelectorAll('.delete-pending').forEach(btn => btn.onclick = () => approveReport(parseInt(btn.dataset.id), "approve", true));
+            }
+        }
+        renderHistoryList();
+        renderAdminConversations();
+    }
+    
+    function renderHistoryList() {
+        let historyContainer = document.getElementById("historyList");
+        if (!historyContainer) return;
+        let filtered = reports.filter(r => r.status !== "pending");
+        if (currentHistorySearch) { let search = currentHistorySearch.toLowerCase(); filtered = filtered.filter(r => r.reporter.toLowerCase().includes(search) || r.targetContent.toLowerCase().includes(search) || r.reason.toLowerCase().includes(search)); }
+        if (filtered.length === 0) { historyContainer.innerHTML = "<div style='text-align:center;padding:30px;'>暂无审核记录</div>"; return; }
+        historyContainer.innerHTML = '';
+        for (let r of filtered) {
+            let statusText = r.status === "approved" ? "已标记有效" : "已驳回";
+            let statusClass = r.status === "approved" ? "status-approved" : "status-rejected";
+            let div = document.createElement('div');
+            div.className = 'history-item';
+            div.innerHTML = `<div><strong>${r.targetType === "photo" ? "📷 照片" : "📝 日记"}</strong><span class="status-badge ${statusClass}" style="margin-left:10px;">${statusText}</span><br>被举报内容：${escapeHtml(r.targetContent.substring(0, 50))}...<br>举报原因：${escapeHtml(r.reason)}<br>举报人：${r.reporter}<br>举报时间：${r.timestamp}<br>处理时间：${r.processTime || "未知"}</div>
+                <div class="history-actions"><button class="view-detail-history" data-id="${r.id}">查看详情</button><button class="reopen-history" data-id="${r.id}">重新审批</button></div>`;
+            historyContainer.appendChild(div);
+        }
+        document.querySelectorAll('.view-detail-history').forEach(btn => btn.onclick = () => { let r = reports.find(x => x.id == parseInt(btn.dataset.id)); if (r) showReportDetail(r); });
+        document.querySelectorAll('.reopen-history').forEach(btn => btn.onclick = () => { reopenReport(parseInt(btn.dataset.id)); });
+    }
+    
+    function initUserDB() { if (!localStorage.getItem("photo_users")) localStorage.setItem("photo_users", JSON.stringify([{ username: "user1", password: "123456", nickname: "光影旅人", phone: "", email: "user1@example.com", bio: "热爱摄影，记录世界的美好", avatar: "📷" }])); }
+    function getUsers() { return JSON.parse(localStorage.getItem("photo_users")); }
+    function saveUsers(u) { localStorage.setItem("photo_users", JSON.stringify(u)); }
+    function registerUser(u, p) { let users = getUsers(); if (users.find(x => x.username === u)) return { success: false, msg: "用户名已存在" }; if (u.length < 3) return { success: false, msg: "用户名至少3位" }; if (p.length < 6) return { success: false, msg: "密码至少6位" }; users.push({ username: u, password: p, nickname: u, phone: "", email: u + "@example.com", bio: "摄影爱好者", avatar: "📷" }); saveUsers(users); return { success: true, msg: "注册成功" }; }
+    function loginUser(u, p) { let users = getUsers(); let user = users.find(x => x.username === u && x.password === p); if (user) { currentUser = { ...user }; delete currentUser.password; isAdminMode = false; localStorage.setItem("photo_currentUser", JSON.stringify(currentUser)); localStorage.setItem("isAdminMode", "false"); updateUIForUser(); return true; } return false; }
+    function adminLogin(p) { if (p === ADMIN_PASSWORD) { currentUser = null; isAdminMode = true; localStorage.removeItem("photo_currentUser"); localStorage.setItem("isAdminMode", "true"); updateUIForUser(); return true; } return false; }
+    function logout() { currentUser = null; isAdminMode = false; localStorage.removeItem("photo_currentUser"); localStorage.setItem("isAdminMode", "false"); updateUIForUser(); renderAll(); alert("已退出"); switchTab("all"); }
+    function loadCurrentUser() { let storedAdmin = localStorage.getItem("isAdminMode"); if (storedAdmin === "true") { isAdminMode = true; currentUser = null; } else { isAdminMode = false; let stored = localStorage.getItem("photo_currentUser"); currentUser = stored ? JSON.parse(stored) : null; } updateUIForUser(); }
+    
+    function updateUIForUser() { 
+        let loginBtn = document.getElementById("showLoginBtn"), adminLoginBtn = document.getElementById("showAdminLoginBtn"), logoutBtn = document.getElementById("logoutBtn"); 
+        if (isAdminMode) { 
+            loginBtn.style.display = "none"; adminLoginBtn.style.display = "none"; logoutBtn.style.display = "inline-block"; 
+            if (!document.querySelector(".tab-btn[data-tab='admin']")) { 
+                let newTab = document.createElement("button"); newTab.className = "tab-btn"; newTab.setAttribute("data-tab", "admin"); newTab.innerHTML = "🛡️ 管理面板"; 
+                document.getElementById("tabBar").appendChild(newTab); 
+                newTab.addEventListener("click", () => switchTab("admin")); 
+            } 
+            document.getElementById("displayNickname").innerText = "管理员"; document.getElementById("displayEmail").innerText = "admin@system.com"; 
+            document.getElementById("displayPhone").innerText = "系统账号"; document.getElementById("displayBio").innerText = "管理员账号"; 
+            updateAvatarDisplay("🛡️"); document.getElementById("myPhotosCount").innerText = "管理员"; 
+        } else if (currentUser) { 
+            loginBtn.style.display = "none"; adminLoginBtn.style.display = "inline-block"; logoutBtn.style.display = "inline-block"; 
+            let adminTab = document.querySelector(".tab-btn[data-tab='admin']"); if (adminTab) adminTab.remove(); 
+            document.getElementById("displayNickname").innerText = currentUser.nickname; document.getElementById("displayEmail").innerText = currentUser.email || "未设置"; 
+            document.getElementById("displayPhone").innerText = currentUser.phone || "未设置"; document.getElementById("displayBio").innerText = currentUser.bio || "热爱摄影"; 
+            updateAvatarDisplay(currentUser.avatar); updateMyPhotoCount(); updateUnreadBadge(); renderNotifications(); renderUserConversations(); 
+        } else { 
+            loginBtn.style.display = "inline-block"; adminLoginBtn.style.display = "inline-block"; logoutBtn.style.display = "none"; 
+            let adminTab = document.querySelector(".tab-btn[data-tab='admin']"); if (adminTab) adminTab.remove(); 
+            document.getElementById("displayNickname").innerText = "未登录"; document.getElementById("displayEmail").innerText = "请先登录"; 
+            document.getElementById("displayPhone").innerText = "---"; document.getElementById("displayBio").innerText = "登录后可编辑个人资料"; 
+            updateAvatarDisplay("🔒"); document.getElementById("myPhotosCount").innerText = "0"; 
+        } 
+        if (isAdmin()) renderAdminPanel(); 
+        renderGallery(); 
+    }
+    function updateAvatarDisplay(val) { 
+        let c = document.getElementById("avatarPreview"); 
+        if (!c) return; 
+        c.innerHTML = ''; 
+        if (val && val.startsWith('data:image')) { 
+            let img = document.createElement('img'); img.src = val; img.style.width = '100%'; img.style.height = '100%'; img.style.objectFit = 'cover'; c.appendChild(img); 
+        } else { 
+            let span = document.createElement('span'); span.id = "avatarEmoji"; span.innerText = val || "📷"; span.style.fontSize = "3rem"; c.appendChild(span); 
+        } 
+    }
+    function saveProfileChanges(field, val) { 
+        if (!currentUser) return; 
+        let users = getUsers(); 
+        let idx = users.findIndex(u => u.username === currentUser.username); 
+        if (idx !== -1) { 
+            if (field === "nickname") users[idx].nickname = val; 
+            if (field === "phone") users[idx].phone = val; 
+            if (field === "bio") users[idx].bio = val; 
+            if (field === "avatar") users[idx].avatar = val; 
+            saveUsers(users); 
+            currentUser = { ...users[idx] }; delete currentUser.password; 
+            localStorage.setItem("photo_currentUser", JSON.stringify(currentUser)); 
+            updateUIForUser(); 
+            if (field === "nickname") { 
+                allPhotos.forEach(p => { if (p.uploaderUsername === currentUser.username) p.uploaderNickname = currentUser.nickname; }); 
+                saveAll(); renderGallery(); 
+            } 
+        } 
+    }
+    
+    let nextBlogId = 100;
+    function publishBlog(t, c) { if (!t || !c) { alert("请填写完整"); return false; } blogs.unshift({ id: nextBlogId++, title: t, content: c, date: new Date().toLocaleDateString() }); saveAll(); renderBlogs(); return true; }
+    function deleteBlog(id) { if (!isAdmin()) { alert("无权限"); return; } if (confirm("删除？")) { blogs = blogs.filter(b => b.id != id); saveAll(); renderBlogs(); } }
+    function renderBlogs() { 
+        let c = document.getElementById("blogList"); 
+        if (!c) return; 
+        if (blogs.length === 0) { c.innerHTML = "<div style='text-align:center;padding:30px;'>暂无日记</div>"; return; } 
+        c.innerHTML = blogs.map(b => `<div class="blog-item"><div class="blog-title">📷 ${escapeHtml(b.title)}</div><div style="font-size:0.8rem">${b.date}</div><p>${escapeHtml(b.content)}</p><div><button class="report-btn-blog" data-type="blog" data-id="${b.id}" data-content="${b.title}" style="background:none;color:var(--warning);cursor:pointer">举报</button> ${isAdmin() ? `<button class="del-blog" data-id="${b.id}" style="background:none;color:var(--danger);cursor:pointer">删除</button>` : ''}</div></div>`).join(''); 
+        document.querySelectorAll('.del-blog').forEach(btn => btn.addEventListener('click', () => deleteBlog(parseInt(btn.dataset.id)))); 
+        document.querySelectorAll('.report-btn-blog').forEach(btn => btn.addEventListener('click', () => openReportModal("blog", parseInt(btn.dataset.id), btn.dataset.content))); 
+    }
+    
+    let currentAdminSubTab = "pending";
+    function switchAdminSubTab(tab) {
+        currentAdminSubTab = tab;
+        document.getElementById("pendingPanel").style.display = tab === "pending" ? "block" : "none";
+        document.getElementById("historyPanel").style.display = tab === "history" ? "block" : "none";
+        document.getElementById("servicePanel").style.display = tab === "service" ? "block" : "none";
+        document.querySelectorAll(".admin-sub-btn").forEach(btn => { if (btn.dataset.admintab === tab) btn.classList.add("active"); else btn.classList.remove("active"); });
+        if (tab === "history") renderHistoryList();
+        else if (tab === "service") renderAdminConversations();
+        else renderAdminPanel();
+    }
+    
+    function switchTab(tabId) { 
+        currentTab = tabId; 
+        let g = document.getElementById("galleryContainer"), b = document.getElementById("blogSection"), p = document.getElementById("profileSection"), a = document.getElementById("adminSection"); 
+        g.style.display = (tabId === "all" || tabId === "landscape" || tabId === "portrait") ? "grid" : "none"; 
+        b.style.display = tabId === "blog" ? "block" : "none"; 
+        p.style.display = tabId === "profile" ? "block" : "none"; 
+        a.style.display = (tabId === "admin" && isAdmin()) ? "block" : "none"; 
+        if (tabId === "all" || tabId === "landscape" || tabId === "portrait") renderGallery(); 
+        if (tabId === "blog") renderBlogs(); 
+        if (tabId === "profile") { updateUIForUser(); renderUserConversations(); } 
+        if (tabId === "admin" && isAdmin()) { if (currentAdminSubTab === "pending") renderAdminPanel(); else if (currentAdminSubTab === "history") renderHistoryList(); else renderAdminConversations(); } 
+        document.querySelectorAll(".tab-btn").forEach(btn => { if (btn.dataset.tab === tabId) btn.classList.add("active"); else btn.classList.remove("active"); }); 
+    }
+    function switchSubTab(sub) { 
+        let i = document.getElementById("infoSubtab"), n = document.getElementById("notificationsSubtab"), s = document.getElementById("serviceSubtab"); 
+        if (sub === "info") { i.style.display = "block"; n.style.display = "none"; s.style.display = "none"; } 
+        else if (sub === "notifications") { i.style.display = "none"; n.style.display = "block"; s.style.display = "none"; renderNotifications(); updateUnreadBadge(); } 
+        else { i.style.display = "none"; n.style.display = "none"; s.style.display = "block"; renderUserConversations(); } 
+        document.querySelectorAll(".sub-tab-btn").forEach(btn => { if (btn.dataset.subtab === sub) btn.classList.add("active"); else btn.classList.remove("active"); }); 
+    }
+    function openModal(id) { document.getElementById(id).classList.add("open"); }
+    function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]); }
+    function renderAll() { renderGallery(); renderBlogs(); if (isAdmin()) renderAdminPanel(); updateMyPhotoCount(); }
+    
+    document.addEventListener("DOMContentLoaded", function() {
+        initPresetPhotos();
+        initUserDB(); 
+        loadCurrentUser(); 
+        loadData(); 
+        setupDescriptionCounter();
+        
+        // 标签页切换
+        document.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", function() { switchTab(this.dataset.tab); }));
+        // 个人中心子标签页
+        document.querySelectorAll(".sub-tab-btn").forEach(btn => btn.addEventListener("click", function() { switchSubTab(this.dataset.subtab); }));
+        // 管理员子标签页
+        document.querySelectorAll(".admin-sub-btn").forEach(btn => btn.addEventListener("click", function() { switchAdminSubTab(this.dataset.admintab); }));
+        // 搜索历史
+        document.getElementById("searchHistoryBtn").addEventListener("click", function() { currentHistorySearch = document.getElementById("historySearch").value; renderHistoryList(); });
+        document.getElementById("historySearch").addEventListener("keyup", function(e) { if (e.key === "Enter") { currentHistorySearch = this.value; renderHistoryList(); } });
+        document.getElementById("searchServiceBtn").addEventListener("click", function() { currentServiceSearch = document.getElementById("serviceSearch").value; renderAdminConversations(); });
+        document.getElementById("serviceSearch").addEventListener("keyup", function(e) { if (e.key === "Enter") { currentServiceSearch = this.value; renderAdminConversations(); } });
+        
+        // 用户登录
+        document.getElementById("showLoginBtn").onclick = function() { openModal("userAuthModal"); };
+        document.getElementById("closeUserAuthModalBtn").onclick = function() { closeModal("userAuthModal"); };
+        document.getElementById("submitUserLoginBtn").onclick = function() { 
+            let u = document.getElementById("userUsername").value.trim(), p = document.getElementById("userPassword").value; 
+            if (!u || !p) { document.getElementById("userAuthMsg").innerText = "请填写完整"; return; } 
+            if (loginUser(u, p)) { 
+                closeModal("userAuthModal"); 
+                document.getElementById("userUsername").value = ""; 
+                document.getElementById("userPassword").value = ""; 
+                renderAll(); 
+                alert("登录成功"); 
+            } else document.getElementById("userAuthMsg").innerText = "用户名或密码错误"; 
+        };
+        
+        // 管理员登录
+        document.getElementById("showAdminLoginBtn").onclick = function() { openModal("adminAuthModal"); };
+        document.getElementById("closeAdminAuthModalBtn").onclick = function() { closeModal("adminAuthModal"); };
+        document.getElementById("submitAdminLoginBtn").onclick = function() { 
+            let p = document.getElementById("adminPassword").value; 
+            if (adminLogin(p)) { 
+                closeModal("adminAuthModal"); 
+                document.getElementById("adminPassword").value = ""; 
+                renderAll(); 
+                alert("管理员登录成功"); 
+                switchTab("admin"); 
+            } else document.getElementById("adminAuthMsg").innerText = "密码错误"; 
+        };
+        
+        // 注册
+        document.getElementById("switchToRegister").onclick = function() { closeModal("userAuthModal"); openModal("registerModal"); };
+        document.getElementById("switchToLogin").onclick = function() { closeModal("registerModal"); openModal("userAuthModal"); };
+        document.getElementById("closeRegisterModalBtn").onclick = function() { closeModal("registerModal"); };
+        document.getElementById("submitRegisterBtn").onclick = function() { 
+            let u = document.getElementById("regUsername").value.trim(), p = document.getElementById("regPassword").value; 
+            let res = registerUser(u, p); 
+            if (res.success) { 
+                alert(res.msg); 
+                closeModal("registerModal"); 
+                openModal("userAuthModal"); 
+                document.getElementById("regUsername").value = ""; 
+                document.getElementById("regPassword").value = ""; 
+            } else document.getElementById("regMsg").innerText = res.msg; 
+        };
+        
+        // 关闭其他模态框
+        document.getElementById("closeReportModalBtn").onclick = function() { closeModal("reportModal"); };
+        document.getElementById("closeUploadModalBtn").onclick = function() { closeModal("uploadModal"); };
+        document.getElementById("closeReportDetailBtn").onclick = function() { closeModal("reportDetailModal"); };
+        document.getElementById("closeDetailBtn").onclick = function() { closeModal("reportDetailModal"); };
+        
+        // 图片预览关闭
+        document.getElementById("imagePreviewModal").querySelector(".close-modal").onclick = function() { document.getElementById("imagePreviewModal").classList.remove("open"); };
+        document.getElementById("imagePreviewModal").onclick = function(e) { if (e.target === document.getElementById("imagePreviewModal")) document.getElementById("imagePreviewModal").classList.remove("open"); };
+        
+        // 退出登录
+        document.getElementById("logoutBtn").onclick = function() { logout(); };
+        
+        // 上传照片
+        document.getElementById("openUploadBtn").onclick = function() { if (currentUser) openModal("uploadModal"); else alert("请先登录"); };
+        document.getElementById("confirmUploadBtn").onclick = function() { 
+            let title = document.getElementById("photoTitle").value.trim(), 
+                category = document.getElementById("photoCategory").value, 
+                desc = document.getElementById("photoDescription").value.trim(), 
+                file = document.getElementById("photoFile").files[0], 
+                msg = document.getElementById("uploadMsg"); 
+            if (!title) { msg.innerText = "请填写作品名称"; return; } 
+            if (!desc) { msg.innerText = "请填写作品介绍"; return; } 
+            if (!validateDescription(desc)) { msg.innerText = "介绍需10-200字"; return; } 
+            if (!file) { msg.innerText = "请选择图片"; return; } 
+            let reader = new FileReader(); 
+            reader.onload = function(e) { 
+                addPhoto(title, category, desc, e.target.result); 
+                closeModal("uploadModal"); 
+                document.getElementById("photoTitle").value = ""; 
+                document.getElementById("photoDescription").value = ""; 
+                document.getElementById("photoFile").value = ""; 
+                msg.innerText = ""; 
+                alert("上传成功"); 
+                if (currentTab !== "all") switchTab("all"); 
+            }; 
+            reader.readAsDataURL(file); 
+        };
+        
+        // 举报
+        document.getElementById("submitReportBtn").onclick = submitReport;
+        
+        // 发布日记
+        document.getElementById("publishBtn").onclick = function() { 
+            let t = document.getElementById("blogTitle").value, c = document.getElementById("blogContent").value; 
+            if (publishBlog(t, c)) { 
+                document.getElementById("blogTitle").value = ""; 
+                document.getElementById("blogContent").value = ""; 
+            } 
+        };
+        
+        // 编辑个人资料
+        document.getElementById("editNicknameIcon").onclick = function() { 
+            let v = prompt("新昵称", currentUser?.nickname); 
+            if (v && v.trim()) saveProfileChanges("nickname", v.trim()); 
+        };
+        document.getElementById("editPhoneIcon").onclick = function() { 
+            let v = prompt("手机号", currentUser?.phone); 
+            if (v !== null) saveProfileChanges("phone", v); 
+        };
+        document.getElementById("editBioIcon").onclick = function() { 
+            let v = prompt("个性签名", currentUser?.bio); 
+            if (v !== null) saveProfileChanges("bio", v); 
+        };
+        
+        // 头像
+        document.getElementById("avatarPreview").onclick = function() { 
+            if (currentUser) document.getElementById("avatarFileInput").click(); 
+            else if (!isAdmin()) alert("请先登录"); 
+        };
+        document.getElementById("avatarFileInput").onchange = function(e) { 
+            let file = e.target.files[0]; 
+            if (file && currentUser) { 
+                let reader = new FileReader(); 
+                reader.onload = function(ev) { 
+                    saveProfileChanges("avatar", ev.target.result); 
+                    alert("头像更新成功"); 
+                }; 
+                reader.readAsDataURL(file); 
+            } 
+        };
+        
+        // 联系客服
+        document.getElementById("openContactBtn").addEventListener("click", function() { 
+            if (currentUser) { 
+                switchTab("profile"); 
+                switchSubTab("service"); 
+            } else alert("请先登录后联系客服"); 
+        });
+        
+        // 深色模式
+        let dark = false; 
+        document.getElementById("themeToggle").onclick = function() { 
+            dark = !dark; 
+            document.body.parentElement.setAttribute("data-theme", dark ? "dark" : "light"); 
+            document.getElementById("themeToggle").innerHTML = dark ? '<i class="fas fa-sun"></i> 亮色模式' : '<i class="fas fa-moon"></i> 深色模式'; 
+        };
+        
+        // 点击模态框背景关闭
+        document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", function(e) { if (e.target === this) this.classList.remove("open"); }));
+    });
+</script>
+</body>
+</html>
